@@ -1,15 +1,17 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, {memo, useEffect, useRef, useState} from 'react';
 import {
     ActivityIndicator,
     Button,
     Modal,
+    PanResponder,
     ScrollView,
     StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
     TouchableWithoutFeedback,
-    View
+    View,
+    Image,
 } from 'react-native';
 import {auth, db} from '../firebase';
 import {signOut} from 'firebase/auth';
@@ -17,6 +19,8 @@ import {doc, getDoc, updateDoc} from 'firebase/firestore';
 import {useNavigation} from '@react-navigation/native';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {DraxProvider, DraxView} from 'react-native-drax';
+import {themes} from '../widgets/themes';
+import {createStyles} from '../widgets/styles';
 
 export default function HomeScreen() {
     const [userId, setUserId] = useState(null);
@@ -36,6 +40,8 @@ export default function HomeScreen() {
     const [receptacles, setReceptacles] = useState(folders.map((folder, index) => ({ id: index + 1, items: [] })));
     const [draggingItem, setDraggingItem] = useState(null);
     const [expandedFolders, setExpandedFolders] = React.useState({});
+    const [currentTheme, setCurrentTheme] = useState(themes["dark"]);
+    const [styles, setStyles] = useState(createStyles(currentTheme));
 
     const toggleFolderExpansion = (id) => {
         setExpandedFolders((prev) => ({
@@ -179,7 +185,7 @@ export default function HomeScreen() {
             const response = await fetch("http://192.168.56.1:8000/feed?feed=" + url);
             console.log(url)
             const feedData = await response.json();
-            navigation.navigate('Feed', {feedData});
+            navigation.navigate('Feed', {feedData, currentTheme});
             console.log(feedData);
         } catch (e) {
             alert("Unable to fetch (in fetchFeed): " + e);
@@ -192,7 +198,8 @@ export default function HomeScreen() {
             const dataSnapshot = await getDoc(doc(db, 'userData', userId));
             const updates = {};
 
-            if (dataFeeds[folder][0].type === 'folder') {
+            console.log("Data Feed:", dataFeeds, "Folder:", folder, "Data feed folder:", dataFeeds[folder]);
+            if (dataFeeds[folder]["feeds"]) {
                 console.log("Dragged Snap:",dataSnapshot.data().feeds[draggedItem][0]);
                 console.log("Data Snap:",dataSnapshot);
                 updates[`feeds.${folder}.feeds.${draggedItem}`] = dataSnapshot.data().feeds[draggedItem][0];
@@ -232,57 +239,161 @@ export default function HomeScreen() {
         }
     };
 
-    const renderFeedItem = ({ item, index }) => (
-        <DraxView
-            longPressDelay={250}
-            key={item}
-            style={styles.draggable}
-            onDragEnd={() => {
-                console.log("Item dragged:", item.dragged);
+    const handleDeleteItem = async (item) => {
+        console.log("Deleting item:", item);
+    };
 
-                handleDragEnd(item);
-                console.log("Draggables:", draggables);
-            }}
-            payload={item}
-            onDragStart={() => item.dragged = false}
-            onDragOver={event => {
-                console.log('start drag');
-                if (event.dragTranslation.x || event.dragTranslation.y) {
-                    item.dragged = true;
-                }
-            }}>
-            <TouchableOpacity
-            onPress={async () => {
-                console.log("Pressed:", dataFeeds[item][0].feed);
-                await fetchFeed(dataFeeds[item][0].feed);
-            }}>
-                <Text style={styles.text}>{item}</Text>
-            </TouchableOpacity>
-        </DraxView>
-    );
+    const FolderItem = ({ folder, toggleFolderExpansion, expandedFolders }) => {
+        return (
+            <View style={styles.folderContainer}>
+                <TouchableOpacity
+                    style={styles.folderHeader}
+                    onPress={() => toggleFolderExpansion(folder)}
+                >
+                    <Text style={{color: currentTheme.text}}>{folder}</Text>
+                    <Text style={{color: currentTheme.text}}>{expandedFolders[folder] ? '-' : '+'}</Text>
+                </TouchableOpacity>
+                {expandedFolders[folder] && (
+                    <View style={styles.folder}>
+                        {expandedFolders[folder] && (
+                        <View style={styles.folder}>
+                            {renderDraggables(feeds.filter(feed => dataFeeds[folder].feeds[feed]))}
+                        </View>
+                        )}
+                    </View>
+                )}
+            </View>
+        );
+    };
+
+    const FeedItem = memo(({ item, handleDeleteItem, handleDragEnd }) => {
+            const [swipeOffset, setSwipeOffset] = useState(0);
+            const [favicon, setFavicon] = useState(null);
+            useEffect(() => {
+                const fetchFavicon = async () => {
+                    try {
+                        const response = await fetch(`https://www.google.com/s2/favicons?domain=${dataFeeds[item][0].feed}`);
+                        if (response.ok) {
+                            setFavicon(response.url);
+                        } else {
+                            setFavicon(null);
+                        }
+                    } catch (error) {
+                        setFavicon(null);
+                    }
+                };
+                fetchFavicon();
+            }, [item]);
+
+            const panResponder = PanResponder.create({
+                onMoveShouldSetPanResponder: (evt, gestureState) => {
+                    return Math.abs(gestureState.dx) > 10; // Reduce the threshold for starting the pan responder
+                },
+                onPanResponderMove: (evt, gestureState) => {
+                    setSwipeOffset(gestureState.dx); // Allow full movement without limiting to -100
+                },
+                onPanResponderRelease: (evt, gestureState) => {
+                    if (gestureState.dx < -50) {
+                        handleDeleteItem(item);
+                    } else {
+                        setSwipeOffset(0);
+                    }
+                },
+            });
+
+            return (
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <View style={[styles.deleteContainer, { opacity: swipeOffset < -50 ? 1 : 0 }]}>
+                        <Text style={styles.deleteText}>Delete</Text>
+                    </View>
+                    <DraxView
+                        longPressDelay={250}
+                        key={item}
+                        style={[styles.draggable, { transform: [{ translateX: swipeOffset }] }]}
+                        onDragEnd={() => {
+                            console.log("Item dragged:", item.dragged);
+                            handleDragEnd(item);
+                        }}
+                        payload={item}
+                        onDragStart={() => (item.dragged = false)}
+                        onDragOver={event => {
+                            if (event.dragTranslation.x || event.dragTranslation.y) {
+                                item.dragged = true;
+                            }
+                        }}
+                        {...panResponder.panHandlers}
+                    >
+                        <TouchableOpacity
+                            onPress={async () => {
+                                console.log("Pressed:", dataFeeds[item][0].feed);
+                                await fetchFeed(dataFeeds[item][0].feed);
+                            }}
+                            style={styles.draggable}
+                        >
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <Image
+                                    source={favicon ? { uri: favicon } : require('../assets/no-favicon.png')}
+                                    style={{ width: 16, height: 16, marginRight: 8 }}
+                                />
+                                <Text style={{ color: currentTheme.text }}>{item}</Text>
+                            </View>
+                        </TouchableOpacity>
+                    </DraxView>
+                </View>
+            );
+        });
+
+    const renderFeedItem = ({ item, index }) => {
+        return (<FeedItem item={item} handleDeleteItem={handleDeleteItem} handleDragEnd={handleDragEnd} />);
+    };
+
+    const renderDraggables = (items) => {
+        return items.map((item, index) => (
+            renderFeedItem({ item, index })
+        ));
+    };
 
     useEffect(() => {
         setDraggables(feeds.map(feed => feed));
         setReceptacles(folders.map((folder, index) => ({ id: folder, items: [] })));
     }, [feeds, folders]);
 
+    const toggleDark = () => {
+        if (currentTheme === themes["dark"]) {
+            setCurrentTheme(themes["light"]);
+        } else {
+            setCurrentTheme(themes["dark"]);
+        }
+        setStyles(createStyles(currentTheme));
+        console.log("Set theme to: ", currentTheme);
+    }
+
+    useEffect(() => {
+        setStyles(createStyles(currentTheme));
+    }, [currentTheme]);
+
     return (
-        <GestureHandlerRootView style={{ flex: 1 }}>
+        <GestureHandlerRootView style={[styles.pageContainer, { flex: 1 }]}>
             <DraxProvider>
+            <View style={{ alignSelf: 'flex-start' }}>
+                <TouchableOpacity onPress={toggleDark} style={styles.themeButton}>
+                    <Image
+                    source={require('../assets/light-mode.png')}
+                    style={[styles.icon, { tintColor: currentTheme === themes["dark"] ? '#FFFFFF' : '#000000' }]}
+                />
+                </TouchableOpacity>
+            </View>
                 <ScrollView contentContainerStyle={styles.container}>
-                    <Text>Welcome to Home Screen!</Text>
+                    <Text style={{color: currentTheme.text}}>Welcome to GenialFeed!</Text>
                     <TouchableOpacity onPress={handleLogout}>
-                        <Text>Logout</Text>
+                        <Text style={{color: currentTheme.text}}>Logout</Text>
                     </TouchableOpacity>
-                    <Text>Your user id is {userId}</Text>
                     <TouchableOpacity onPress={handleAddItem} ref={addButtonRef}>
-                        <Text>+</Text>
+                        <Text style={{color: currentTheme.text}}>+</Text>
                     </TouchableOpacity>
 
                     <View style={styles.draggablesContainer}>
-                        {draggables.map((item, index) => (
-                            renderFeedItem({ item, index })
-                        ))}
+                        {renderDraggables(draggables)}
                     </View>
 
                     <View style={styles.receptaclesContainer}>
@@ -295,12 +406,11 @@ export default function HomeScreen() {
                                     handleDrop(payload, receptacle.id);
                                 }}
                             >
-                                <Text style={styles.text}>Receptacle {receptacle.id}</Text>
-                                {receptacle.items.map((item, index) => (
-                                    <Text key={index} style={styles.receptacleItem}>
-                                        {item}
-                                    </Text>
-                                ))}
+                                <FolderItem
+                                    folder={receptacle.id}
+                                    toggleFolderExpansion={toggleFolderExpansion}
+                                    expandedFolders={expandedFolders}
+                                />
                             </DraxView>
                         ))}
                     </View>
@@ -347,6 +457,7 @@ export default function HomeScreen() {
                             value={inputValue}
                             onChangeText={setInputValue}
                             onSubmitEditing={handleInputSubmit}
+                            autoCapitalize='none'
                         />
                         <Button title="Submit" onPress={handleInputSubmit} />
                     </View>
@@ -357,119 +468,3 @@ export default function HomeScreen() {
         </GestureHandlerRootView>
     );
 }
-
-const styles = StyleSheet.create({
-    folderItem: {
-        padding: 10,
-        backgroundColor: 'lightgray',
-        marginVertical: 5,
-        borderRadius: 5,
-    },
-    modalBackdrop: {
-        flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    },
-    modal: {
-        position: 'absolute',
-        width: 150,
-        padding: 10,
-        backgroundColor: 'white',
-        borderRadius: 5,
-        elevation: 5,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-    },
-    inputModal: {
-        padding: 20,
-        backgroundColor: 'white',
-        borderRadius: 5,
-        alignItems: 'center',
-    },
-    input: {
-        borderWidth: 1,
-        borderColor: '#ccc',
-        padding: 5,
-        width: 200,
-        marginVertical: 10,
-    },
-    modalBackground: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    },
-    modalContent: {
-        width: 300,
-        padding: 20,
-        backgroundColor: 'white',
-        borderRadius: 5,
-    },
-    folder: {
-        padding: 10,
-        backgroundColor: '#e0e0e0',
-        borderRadius: 5,
-        marginVertical: 5,
-    },
-    container: {
-        flexGrow: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingVertical: 20,
-    },
-    hidden: {
-        opacity: 0,
-    },
-    text: {
-        color: 'white',
-        fontSize: 16,},
-    folderContainer: {
-        width: '100%',
-        marginVertical: 5,
-    },
-    folderHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        backgroundColor: '#e0e0e0',
-        padding: 10,
-        borderRadius: 5,
-    },
-    draggablesContainer: {
-        flexDirection: 'column',  // Arrange items in a column
-        justifyContent: 'flex-start',
-        marginBottom: 20,
-        width: '100%',
-    },
-    draggable: {
-        width: '100%',  // Full width for row-like appearance
-        height: 50,  // Adjust height for a row-like appearance
-        backgroundColor: 'blue',
-        justifyContent: 'center',
-        alignItems: 'flex-start',  // Align text to the start (left)
-        marginVertical: 5,  // Adjust margin for better spacing
-        paddingHorizontal: 10,  // Add padding for text
-    },
-    receptaclesContainer: {
-        flexDirection: 'column',  // Arrange items in a column
-        justifyContent: 'flex-start',
-        marginTop: 20,
-        width: '100%',
-    },
-    receptacle: {
-        width: '100%',  // Full width for row-like appearance
-        height: 'auto',  // Auto height to fit content
-        backgroundColor: 'green',
-        justifyContent: 'center',
-        alignItems: 'flex-start',  // Align text to the start (left)
-        marginVertical: 5,  // Adjust margin for better spacing
-        padding: 10,  // Add padding for text
-    },
-    receptacleItem: {
-        color: 'yellow',
-        fontSize: 14,  // Slightly larger font for readability
-        marginVertical: 2,  // Spacing between items within a folder
-    },
-});
-

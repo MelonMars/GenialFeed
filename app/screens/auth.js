@@ -27,11 +27,14 @@ export function LoginScreen({navigation}) {
             value={email}
             onChangeText={value => setEmail(value)}
             placeholder='Enter email'
+            autoCapitalize='none'
         />
         <TextInput
             value={password}
             onChangeText={value => setPassword(value)}
             placeholder='Enter password'
+            autoCapitalize='none'
+            secureTextEntry={true}
         />
         <TouchableOpacity onPress={handleSubmit}>
             <Text>Log in</Text>
@@ -82,11 +85,14 @@ export function SignupScreen({navigation}) {
                 value={email}
                 onChangeText={value => setEmail(value)}
                 placeholder='Enter email'
+                autoCapitalize='none'
             />
             <TextInput
                 value={password}
                 onChangeText={value => setPassword(value)}
                 placeholder='Enter password'
+                autoCapitalize='none'
+                secureTextEntry={true}
             />
             <TouchableOpacity onPress={handleSubmit}>
                 <Text>Sign up</Text>

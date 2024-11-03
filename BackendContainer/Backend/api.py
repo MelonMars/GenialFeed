@@ -7,6 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 import feedparser
 from urllib.parse import urljoin
 from readability import Document
+from bs4 import BeautifulSoup as bs
+from readability import Document
 
 app = FastAPI()
 app.add_middleware(
@@ -19,7 +21,22 @@ app.add_middleware(
 
 @app.get("/checkFeed/")
 async def checkFeed(feedUrl):
-    print(feedUrl)
+    feedResponse = requests.get(feedUrl)
+    if feedResponse.status_code != 200:
+        return {"response": "BOZO", "message": "Website not reachable"}
+    else:
+        soup = bs(feedResponse.text, "html.parser")
+        links = soup.find_all("link", type="application/rss+xml", rel="alternate")
+        if len(links) > 0:
+            if links[0].get("href"):
+                rssRef = links[0].get("href")
+                if not feedparser.parse(rssRef).bozo:
+                    return {"response": rssRef}
+                elif not feedparser.parse(feedUrl+rssRef).bozo:
+                    return {"response": feedUrl+rssRef}
+                elif not feedparser.parse(feedUrl + "/" + rssRef).bozo:
+                    return {"response": feedUrl + "/" + rssRef}
+
     if not feedparser.parse(feedUrl).bozo:
         return {"response": feedUrl}
     apaths = ["", "rss.xml", "feed", ".rss", ".feed", "feed.xml", "rss"]
@@ -93,7 +110,7 @@ async def apiFeed(feedUrl):
             }
         ],
         "temperature": 0.7,
-        "max_tokens": -1,
+        "max_tokens": 100,
         "stream": True
     }
 
@@ -136,7 +153,7 @@ async def getSummary(link):
         "messages": [
             {
                 "role": "system",
-                "content": "You are an AI with a job to do. You will be provided with the HTML code of a webpage, and it is your job to make a brief summary/TL;DR of the webpage."
+                "content": "You are an AI with a job to do. You will be provided with the HTML code of a webpage, and it is your job to make a brief summary/TL;DR of the webpage. Do not include TL;DR or extraneous tokens. You should return a summary of the webpage. You have 150 tokens, or 3 sentences."
             },
             {
                 "role": "user",
@@ -144,7 +161,7 @@ async def getSummary(link):
             }
         ],
         "temperature": 0.7,
-        "max_tokens": -1,
+        "max_tokens": 150,
         "stream": True
     }
 
@@ -166,3 +183,8 @@ async def getSummary(link):
 
     print(summary)
     return {"result": summary}
+
+
+@app.get("/cleanPage/")
+async def cleanPage(link):
+    return {"result": Document(requests.get(link).content).summary()}

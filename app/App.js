@@ -14,17 +14,17 @@ export default function App() {
 
     return (
         <NavigationContainer>
-            <Stack.Navigator>
+            <Stack.Navigator screenOptions={{ headerTitle: '', headerStyle: { height: 60 }, headerBackTitleVisible: false, headerLeft: null }}>
                 {user ? (
-                    <Stack.Screen name="Home" component={HomeScreen} />
+                    <Stack.Screen name="Home" component={HomeScreen}/>
                 ) : (
                     <>
-                        <Stack.Screen name="Login" component={LoginScreen} />
-                        <Stack.Screen name="Signup" component={SignupScreen} />
+                        <Stack.Screen name="Login" component={LoginScreen}/>
+                        <Stack.Screen name="Signup" component={SignupScreen}/>
                     </>
                 )}
-                <Stack.Screen name="Feed" component={FeedScreen} />
-                <Stack.Screen name="FeedPage" component={FeedPage} />
+                <Stack.Screen name="Feed" component={FeedScreen}/>
+                <Stack.Screen name="FeedPage" component={FeedPage}/>
             </Stack.Navigator>
         </NavigationContainer>
     );
