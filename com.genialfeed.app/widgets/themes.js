@@ -5,6 +5,7 @@ const dark = {
     accent: '#ff0000',
     background: '#303030',
     text: '#ffffff',
+    modalOverlay: 'rgba(255,255,255,0.5)',
 };
 
 const light = {
@@ -14,6 +15,7 @@ const light = {
     accent: '#ff0000',
     background: '#f0f0f0',
     text: '#000000',
+    modalOverlay: 'rgba(156,156,156,0.5)',
 };
 
 export const themes = {

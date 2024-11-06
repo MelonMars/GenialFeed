@@ -6,6 +6,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import feedparser
 from urllib.parse import urljoin
+
+import validators
+from urllib.parse import urljoin, urlparse
 from readability import Document
 from bs4 import BeautifulSoup as bs
 from readability import Document
@@ -19,36 +22,79 @@ app.add_middleware(
 )
 
 
+def check_common_child_paths(feed_url):
+    """Check common paths under the URL for potential RSS feeds."""
+    common_paths = ["rss.xml", "feed", "feeds", "rss", "feed.xml"]
+    for path in common_paths:
+        url = urljoin(feed_url, path)
+        print(f"Checking child path: {url}")
+
+        feed = feedparser.parse(url)
+        if not feed.bozo:
+            return url
+    return None
+
+
+def find_rss_link_in_soup(soup, base_url):
+    """Look for RSS link in the soup and return absolute URL if found."""
+    links = soup.find_all("link", type="application/rss+xml", rel="alternate")
+    for link in links:
+        href = link.get("href")
+        if href:
+            rss_url = urljoin(base_url, href)
+            if not feedparser.parse(rss_url).bozo:
+                return rss_url
+    return None
+
+
+def check_parent_pages(feed_url):
+    """Check parent pages up the URL hierarchy for RSS feed links."""
+    parsed_url = urlparse(feed_url)
+    path_segments = parsed_url.path.strip("/").split("/")
+
+    for i in range(len(path_segments), 0, -1):
+        parent_url = parsed_url._replace(path="/".join(path_segments[:i]) + "/").geturl()
+        print(f"Checking parent page: {parent_url}")
+
+        response = requests.get(parent_url)
+        if response.status_code == 200:
+            soup = bs(response.text, "html.parser")
+            rss_url = find_rss_link_in_soup(soup, parent_url)
+            if rss_url:
+                return rss_url
+    return None
+
+
 @app.get("/checkFeed/")
-async def checkFeed(feedUrl):
-    feedResponse = requests.get(feedUrl)
+async def checkFeed(feedUrl: str):
+    if not validators.url(feedUrl):
+        feedUrl = "https://" + feedUrl
+
+    try:
+        feedResponse = requests.get(feedUrl)
+    except requests.RequestException:
+        return {"response": "BOZO", "message": "Website not reachable"}
+
     if feedResponse.status_code != 200:
         return {"response": "BOZO", "message": "Website not reachable"}
-    else:
-        soup = bs(feedResponse.text, "html.parser")
-        links = soup.find_all("link", type="application/rss+xml", rel="alternate")
-        if len(links) > 0:
-            if links[0].get("href"):
-                rssRef = links[0].get("href")
-                if not feedparser.parse(rssRef).bozo:
-                    return {"response": rssRef}
-                elif not feedparser.parse(feedUrl+rssRef).bozo:
-                    return {"response": feedUrl+rssRef}
-                elif not feedparser.parse(feedUrl + "/" + rssRef).bozo:
-                    return {"response": feedUrl + "/" + rssRef}
+
+    soup = bs(feedResponse.text, "html.parser")
+
+    rss_url = find_rss_link_in_soup(soup, feedUrl)
+    if rss_url:
+        return {"response": rss_url}
 
     if not feedparser.parse(feedUrl).bozo:
         return {"response": feedUrl}
-    apaths = ["", "rss.xml", "feed", ".rss", ".feed", "feed.xml", "rss"]
-    bpaths = ["", "https://", "http://", "https://www.", "http://www."]
-    for path in apaths:
-        for bpath in bpaths:
-            url = urljoin(str(bpath)+str(feedUrl), str(path))
-            print(url)
-            feed = feedparser.parse(urljoin(str(bpath)+str(feedUrl), str(path)))
-            if not feed.bozo:
-                return {"response": urljoin(str(bpath)+str(feedUrl), str(path))}
-            time.sleep(1)
+
+    rss_url = check_parent_pages(feedUrl)
+    if rss_url:
+        return {"response": rss_url}
+
+    rss_url = check_common_child_paths(feedUrl)
+    if rss_url:
+        return {"response": rss_url}
+
     return {"response": "BOZO"}
 
 
@@ -96,7 +142,8 @@ async def apiFeed(feedUrl):
 
     url = "http://localhost:1234/v1/chat/completions"
     headers = {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "User-Agent": "GenialFisher"
     }
     data = {
         "messages": [

@@ -10,13 +10,13 @@ export const createStyles = (theme) => {
         },
         modalBackdrop: {
             flex: 1,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            backgroundColor: theme.modalOverlay,
         },
         modal: {
             position: 'absolute',
             width: 150,
             padding: 10,
-            backgroundColor: theme.primary,
+            backgroundColor: theme.primLight,
             borderRadius: 5,
             elevation: 5,
             shadowColor: '#000',
@@ -32,10 +32,11 @@ export const createStyles = (theme) => {
         },
         input: {
             borderWidth: 1,
-            borderColor: '#ccc',
+            borderColor: theme.text,
             padding: 5,
             width: 200,
             marginVertical: 10,
+            color: theme.text,
         },
         modalBackground: {
             flex: 1,
