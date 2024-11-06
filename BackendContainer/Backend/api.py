@@ -12,6 +12,9 @@ from urllib.parse import urljoin, urlparse
 from readability import Document
 from bs4 import BeautifulSoup as bs
 from readability import Document
+import httpx
+from openai import OpenAI
+
 
 app = FastAPI()
 app.add_middleware(
@@ -184,52 +187,44 @@ async def apiFeed(feedUrl):
 
 
 @app.get("/getSummary/")
-async def getSummary(link):
+async def get_summary(link: str):
     print("Get Summary")
-    res = requests.get(link)
-    url = "http://localhost:1234/v1/chat/completions"
+
+    async with httpx.AsyncClient() as client:
+        res = await client.get(link)
+        if res.status_code != 200:
+            return {"result": "ERROR fetching link"}
 
     doc = Document(res.text)
     message = doc.summary()
 
-    headers = {
-        "Content-Type": "application/json"
-    }
-
+    headers = {"Content-Type": "application/json"}
     data = {
         "messages": [
             {
                 "role": "system",
-                "content": "You are an AI with a job to do. You will be provided with the HTML code of a webpage, and it is your job to make a brief summary/TL;DR of the webpage. Do not include TL;DR or extraneous tokens. You should return a summary of the webpage. You have 150 tokens, or 3 sentences."
+                "content": (
+                    "You are an AI with a job to do. You will be provided with the HTML code of a webpage, "
+                    "and it is your job to make a brief summary/TL;DR of the webpage. Do not include TL;DR or "
+                    "extraneous tokens. You should return a summary of the webpage. You have 150 tokens, or 3 sentences."
+                )
             },
             {
                 "role": "user",
-                "content": message
+                "content": message[:4500]
             }
         ],
         "temperature": 0.7,
-        "max_tokens": 150,
-        "stream": True
+        "stream": False,
+        "max_tokens": 1000
     }
 
-    response = requests.post(url, headers=headers, data=json.dumps(data), stream=True)
-
-    summary = ""
-    if response.status_code == 200:
-        response_text = ""
-        for chunk in response.iter_content(chunk_size=None):
-            response_text += chunk.decode('utf-8')
-        for line in response_text.split("\n"):
-            try:
-                j = json.loads(line[5:])
-                summary += j["choices"][0]["delta"]["content"]
-            except:
-                pass
-    else:
-        return {"result": "ERROR"}
-
+    url = "http://127.0.0.1:1234/v1/chat/completions"
+    response = requests.post(url, headers=headers, json=data, verify=False)
+    summary = response.json()['choices'][0]['message']['content']
     print(summary)
     return {"result": summary}
+
 
 
 @app.get("/cleanPage/")
