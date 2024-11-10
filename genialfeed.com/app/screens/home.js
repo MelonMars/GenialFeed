@@ -339,12 +339,12 @@ export default function HomeScreen() {
                         style={[styles.icon, { tintColor: currentTheme === themes["dark"] ? '#FFFFFF' : '#000000' }]}
                     />
                 </TouchableOpacity>
+            </View>
+            <ScrollView contentContainerStyle={styles.container}>
                 <Text style={{color: currentTheme.text}}>Welcome to GenialFeed!</Text>
                 <TouchableOpacity onPress={handleLogout}>
                     <Text style={{color: currentTheme.text}}>Logout</Text>
                 </TouchableOpacity>
-            </View>
-            <ScrollView contentContainerStyle={styles.container}>
                 <TouchableOpacity onPress={handleAddItem} ref={addButtonRef}>
                     <Text style={{color: currentTheme.text}}>+</Text>
                 </TouchableOpacity>
