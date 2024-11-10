@@ -23,10 +23,10 @@ Please note that web is *not* supported as of right now, however `oldweb` contai
   Your browser does not support the video tag.
 </video>
 
-![Screenshot 1](genialfeed.com/image1.png)
+![Screenshot 1](https://raw.githubusercontent.com/MelonMars/GenialFeed/refs/heads/main/genialfeed.com/image4.png)
 
-![Screenshot 2](genialfeed.com/image2.png)
+![Screenshot 2](https://raw.githubusercontent.com/MelonMars/GenialFeed/refs/heads/main/genialfeed.com/image3.png)
 
-![Screenshot 3](genialfeed.com/image3.png)
+![Screenshot 3](https://raw.githubusercontent.com/MelonMars/GenialFeed/refs/heads/main/genialfeed.com/image2.png)
 
-![Screenshot 4](genialfeed.com/image4.png)
+![Screenshot 4](https://raw.githubusercontent.com/MelonMars/GenialFeed/refs/heads/main/genialfeed.com/image1.png)
