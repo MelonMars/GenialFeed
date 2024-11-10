@@ -24,7 +24,9 @@
       "package": "com.genialfeed.genialfeed"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "output": "server",
+      "bundler": "metro"
     },
     "extra": {
       "eas": {

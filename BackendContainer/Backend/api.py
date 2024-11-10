@@ -5,16 +5,12 @@ import requests
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import feedparser
-from urllib.parse import urljoin
 
 import validators
 from urllib.parse import urljoin, urlparse
-from readability import Document
 from bs4 import BeautifulSoup as bs
 from readability import Document
 import httpx
-from openai import OpenAI
-
 
 app = FastAPI()
 app.add_middleware(
@@ -230,3 +226,7 @@ async def get_summary(link: str):
 @app.get("/cleanPage/")
 async def cleanPage(link):
     return {"result": Document(requests.get(link).content).summary()}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
