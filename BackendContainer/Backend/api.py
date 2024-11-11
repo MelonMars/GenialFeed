@@ -227,6 +227,29 @@ async def get_summary(link: str):
 async def cleanPage(link):
     return {"result": Document(requests.get(link).content).summary()}
 
+@app.get("/getFavicon/")
+async def getFavicon(url):
+    try:
+        parsed_url = urlparse(url)
+        base_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
+        print("Scheme:", parsed_url.scheme, "Netloc:", parsed_url.netloc, "Base URL:", base_url)
+        favicon_url = f"{base_url}/favicon.ico"
+        response = requests.get(favicon_url)
+        if response.status_code == 200:
+            return {"favicon_url": favicon_url}
+        else:
+            return "Favicon not found at the usual location."
+    except Exception as e:
+        return f"Error: {e}"
+
+@app.get("/")
+async def read_root():
+    return {"status": "ok"}
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

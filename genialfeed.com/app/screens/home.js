@@ -154,11 +154,11 @@ export default function HomeScreen() {
             let feedUrl = await showInputModal("Enter feed url:");
             feedUrl = feedUrl.replace(" ", "");
 
-            const response = await fetch("http://192.168.56.1:8000/checkFeed/?feedUrl=" + feedUrl);
+            const response = await fetch("https://api.genialfeed.com:8000/checkFeed/?feedUrl=" + feedUrl);
             const feed = await response.json();
 
             if (feed.response === "BOZO") {
-                const response = await fetch("http://192.168.56.1:8000/makeFeed/?feedUrl=" + feedUrl);
+                const response = await fetch("https://api.genialfeed.com:8000/makeFeed/?feedUrl=" + feedUrl);
                 const feed2 = await response.json();
                 if (feed2.response === "BOZO") {
                     alert("INVALID FEED URL");
@@ -201,7 +201,7 @@ export default function HomeScreen() {
 
     const fetchFeed = async (url) => {
         try {
-            const response = await fetch("http://192.168.56.1:8000/feed?feed=" + url);
+            const response = await fetch("https://api.genialfeed.com:8000/feed?feed=" + url);
             const feedData = await response.json();
             navigation.navigate('Feed', {feedData, currentTheme});
         } catch (e) {
@@ -269,12 +269,14 @@ export default function HomeScreen() {
             const fetchFavicon = async () => {
                 try {
                     const feedUrl = folder ? dataFeeds[folder].feeds[item][0].feed : dataFeeds[item][0].feed;
-                    const response = await fetch(`https://www.google.com/s2/favicons?domain=${feedUrl}`);
-                    if (response.ok) {
-                        setFavicon(response.url);
+                    const response = await fetch(`https://api.genialfeed.com:8000/getFavicon/?url=${feedUrl}`);
+                    const respJson = await response.json();
+                    if (respJson["favicon_url"] !== null) {
+                        setFavicon(respJson["favicon_url"]);
                     } else {
                         setFavicon(null);
                     }
+                    console.log("Favicon:", favicon);
                 } catch (error) {
                     setFavicon(null);
                 }

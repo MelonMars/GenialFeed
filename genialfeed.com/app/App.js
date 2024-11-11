@@ -6,6 +6,7 @@ import { LoginScreen, SignupScreen } from './screens/auth';
 import useAuth from "./hooks/useAuth";
 import FeedScreen from './screens/feedView';
 import FeedPage from "./screens/feedScreen";
+import {TouchableOpacity, Image} from "react-native";
 
 const Stack = createStackNavigator();
 
@@ -14,8 +15,13 @@ export default function App() {
 
     return (
         <NavigationContainer>
-            <Stack.Navigator screenOptions={{ headerShown: false }}>
-                {user ? (
+            <Stack.Navigator screenOptions={({ navigation }) => ({ headerTitleAlign: 'center', headerLeft: () => (
+                <TouchableOpacity onPress={() => navigation.goBack()}>
+                    <Image source={require('./assets/back-arrow.png')} style={{ width: 24, height: 24, marginLeft: 10 }} />
+                </TouchableOpacity>
+            ) })}>
+
+            {user ? (
                     <Stack.Screen name="Home" component={HomeScreen}/>
                 ) : (
                     <>

@@ -3,7 +3,7 @@
 Genial Feed is an AI-based RSS Reader that works across devices.
 It has the ability to make summaries of articles and to get articles from various sites, alongside creating feeds itself!
 
-A demo link (for when I get the Cider sponsorship) is at: [Vercel](https://genial-feed.vercel.app/)
+You can test it out at [genialfeed.com](https://genialfeed.com)!
 
 ## To use yourself
 While I do hope to be able to put this on the app store with [HackClub Cider](https://cider.hackclub.com/), it may not be available. If so, to use it yourself:
