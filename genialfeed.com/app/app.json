@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "app",
+    "name": "GenialFeed",
     "slug": "app",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -30,6 +30,22 @@
       "eas": {
         "projectId": "7726636c-5689-42f3-aa0b-5e7275fa9c4b"
       }
-    }
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 34,
+            "targetSdkVersion": 34,
+            "buildToolsVersion": "34.0.0"
+          },
+          "ios": {
+            "deploymentTarget": "17.0",
+            "useFrameworks": "static"
+          }
+        }
+      ]
+    ]
   }
 }

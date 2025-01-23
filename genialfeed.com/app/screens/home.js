@@ -18,6 +18,7 @@ import {deleteField, doc, getDoc, updateDoc} from 'firebase/firestore';
 import { useNavigation } from '@react-navigation/native';
 import { themes } from '../widgets/themes';
 import { createStyles } from '../widgets/styles';
+import * as Haptics from 'expo-haptics';
 
 export default function HomeScreen() {
     const [userId, setUserId] = useState(null);
@@ -101,18 +102,21 @@ export default function HomeScreen() {
         console.log(`Folder: ${folder}`, folderFeeds, dataFeeds[folder].feeds);
         return (
             <View style={styles.folderContainer}>
-                <TouchableOpacity
-                    style={styles.folderHeader}
-                    onPress={() => toggleFolderExpansion(folder)}
-                >
-                    <Text style={{color: currentTheme.text}}>{folder}</Text>
-                    <Text style={{color: currentTheme.text}}>{expandedFolders[folder] ? '-' : '+'}</Text>
-                </TouchableOpacity>
-                {expandedFolders[folder] && (
-                    <View style={styles.folder}>
-                        {renderDraggables(folderFeeds, folder)}
-                    </View>
-                )}
+            <TouchableOpacity
+                style={styles.folderHeader}
+                onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+                toggleFolderExpansion(folder);
+                }}
+            >
+                <Text style={{color: currentTheme.text}}>{folder}</Text>
+                <Text style={{color: currentTheme.text}}>{expandedFolders[folder] ? '-' : '+'}</Text>
+            </TouchableOpacity>
+            {expandedFolders[folder] && (
+                <View style={styles.folder}>
+                {renderDraggables(folderFeeds, folder)}
+                </View>
+            )}
             </View>
         );
     };
@@ -153,8 +157,14 @@ export default function HomeScreen() {
             feedTitle = feedTitle.replace(/[^a-zA-Z0-9 ]/g, '');
             let feedUrl = await showInputModal("Enter feed url:");
             feedUrl = feedUrl.replace(" ", "");
-
-            const response = await fetch("https://api.genialfeed.com:8000/checkFeed/?feedUrl=" + feedUrl);
+            const requUrl = "https://api.genialfeed.com:8000/checkFeed/?feedUrl=" + feedUrl;
+            console.log("Sending request to:", requUrl);
+            const response = await fetch(requUrl, {
+                method: 'GET',
+                headers: {
+                    'accept': 'application/json'
+                }
+            });
             const feed = await response.json();
 
             if (feed.response === "BOZO") {
@@ -178,8 +188,10 @@ export default function HomeScreen() {
                 await updateDoc(dataSnapshot.ref, updates);
                 await fetchFeedsAndFolders();
             }
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
         } catch (e) {
-            console.log(e);
+            console.log(e.name, e.message);
+            alert("Unable to add feed! Check your network connection and try again!");
         }
         setLoading(false);
     };
@@ -203,6 +215,7 @@ export default function HomeScreen() {
         try {
             const response = await fetch("https://api.genialfeed.com:8000/feed?feed=" + url);
             const feedData = await response.json();
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
             navigation.navigate('Feed', {feedData, currentTheme});
         } catch (e) {
             alert("Unable to fetch (in fetchFeed): " + e);
@@ -416,7 +429,10 @@ export default function HomeScreen() {
                                     onSubmitEditing={handleInputSubmit}
                                     autoCapitalize='none'
                                 />
-                                <Button title="Submit" onPress={handleInputSubmit} />
+                                <Button title="Submit" onPress={() => {
+                                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                                    handleInputSubmit();
+                                }} />
                             </View>
                         </TouchableWithoutFeedback>
                     </View>

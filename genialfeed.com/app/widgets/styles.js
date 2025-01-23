@@ -3,8 +3,6 @@ import { StyleSheet } from 'react-native';
 export const createStyles = (theme) => {
     if (!theme || typeof theme !== 'object' || theme === null) {
         throw new TypeError('Invalid theme object');
-    } else {
-        console.log("Theme is:", JSON.stringify(theme));
     }
 
     return StyleSheet.create({

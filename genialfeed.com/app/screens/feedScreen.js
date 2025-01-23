@@ -74,7 +74,7 @@ export default function FeedPage({ route }) {
         setLoading(true);
         setModalVisible(true);
         try {
-            const response = await fetch('http://45.55.228.84/:8000/getSummary/?link=' + link);
+            const response = await fetch('https://api.genialfeed.com:8000/getSummary/?link=' + link);
             const summData = await response.json();
             if (summData.result === "ERROR") {
                 setSummary("Couldn't make summary!");
