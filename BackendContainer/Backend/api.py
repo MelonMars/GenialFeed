@@ -129,6 +129,8 @@ async def read_feed(feed):
         }
     }
 
+openaiModel = "gpt-4o-mini"
+openaiKey = "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"
 
 @app.get("/makeFeed/")
 async def apiFeed(feedUrl):
@@ -139,10 +141,11 @@ async def apiFeed(feedUrl):
     else:
         return {"response": "ERROR"}
 
-    url = "http://localhost:1234/v1/chat/completions"
+    url = "https://api.openai.com/v1/chat/completions"
     headers = {
         "Content-Type": "application/json",
-        "User-Agent": "GenialFisher"
+        "User-Agent": "GenialFisher",
+	"Authorization": f"Bearer {openaiKey}"
     }
     data = {
         "messages": [
@@ -157,7 +160,8 @@ async def apiFeed(feedUrl):
         ],
         "temperature": 0.7,
         "max_tokens": 100,
-        "stream": True
+        "stream": True,
+	"model": openaiModel,
     }
 
     response = requests.post(url, headers=headers, data=json.dumps(data), stream=True)
@@ -194,7 +198,7 @@ async def get_summary(link: str):
     doc = Document(res.text)
     message = doc.summary()
 
-    headers = {"Content-Type": "application/json"}
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {openaiKey}"}
     data = {
         "messages": [
             {
@@ -212,12 +216,16 @@ async def get_summary(link: str):
         ],
         "temperature": 0.7,
         "stream": False,
-        "max_tokens": 1000
+        "max_tokens": 1000,
+	"model": openaiModel,
     }
 
-    url = "http://127.0.0.1:1234/v1/chat/completions"
-    response = requests.post(url, headers=headers, json=data, verify=False)
-    summary = response.json()['choices'][0]['message']['content']
+    url = "https://api.openai.com/v1/chat/completions"
+    response = requests.post(url, headers=headers, json=data, verify=False, stream=False)
+    try:
+        summary = response.json()['choices'][0]['message']['content']
+    except:
+        print("ERROR Generating Summary!! OpenAI output is: " + response.text)
     print(summary)
     return {"result": summary}
 
