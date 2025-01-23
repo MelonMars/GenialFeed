@@ -168,10 +168,12 @@ export default function HomeScreen() {
             const feed = await response.json();
 
             if (feed.response === "BOZO") {
-                const response = await fetch("https://api.genialfeed.com:8000/makeFeed/?feedUrl=" + feedUrl);
+                const response = await fetch("https://api.genialfeed.com:8000/makeFeed/?feedUrl=" + feedUrl + "&userId=" + userId);
                 const feed2 = await response.json();
                 if (feed2.response === "BOZO") {
                     alert("INVALID FEED URL");
+                } else if (feed2.response === "TOKENS") {
+                    alert("Not enough tokens to add feed!");
                 } else {
                     const validFeedUrl = feed.response;
                     const dataSnapshot = await getDoc(doc(db, 'userData', userId));
@@ -216,7 +218,7 @@ export default function HomeScreen() {
             const response = await fetch("https://api.genialfeed.com:8000/feed?feed=" + url);
             const feedData = await response.json();
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
-            navigation.navigate('Feed', {feedData, currentTheme});
+            navigation.navigate('Feed', {feedData, currentTheme, userId});
         } catch (e) {
             alert("Unable to fetch (in fetchFeed): " + e);
         }

@@ -6,7 +6,7 @@ import { createStyles } from '../widgets/styles';
 
 const FeedScreen = () => {
     const route = useRoute();
-    const { feedData, currentTheme } = route.params;
+    const { feedData, currentTheme, userId } = route.params;
     console.log(feedData);
     console.log(feedData.response);
     const feeds = feedData.response.entries;
@@ -25,6 +25,7 @@ const FeedScreen = () => {
                                 description: item.description,
                                 title: item.title,
                                 link: item.link,
+                                userId: userId,
                                 styles: styles,
                                 })}
                             style={styles.feedView}>

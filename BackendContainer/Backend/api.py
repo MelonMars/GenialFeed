@@ -11,6 +11,14 @@ from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup as bs
 from readability import Document
 import httpx
+from firebase_admin import firestore
+import firebase_admin
+from firebase_admin import credentials
+
+cred = credentials.Certificate("BackendContainer/Backend/linkaggregator-bb44b-firebase-adminsdk-4zwbg-9ce8bd5185.json")
+app = firebase_admin.initialize_app(cred)
+
+db = firestore.client(app)
 
 app = FastAPI()
 app.add_middleware(
@@ -133,7 +141,18 @@ openaiModel = "gpt-4o-mini"
 openaiKey = "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"
 
 @app.get("/makeFeed/")
-async def apiFeed(feedUrl):
+async def apiFeed(feedUrl, userId):
+    doc_ref = db.collection("userData").document(userId)
+    doc = doc_ref.get()
+    try:
+        tokens = doc.to_dict()["tokens"]
+    except KeyError:
+        tokens = 800
+        doc_ref.set({"tokens": tokens})
+
+    if tokens < 200:
+        return {"response": "TOKENS"}
+    tokens -= 250
     response = requests.get(feedUrl)
     res = ""
     if response.status_code == 200:
@@ -187,7 +206,18 @@ async def apiFeed(feedUrl):
 
 
 @app.get("/getSummary/")
-async def get_summary(link: str):
+async def get_summary(link: str, userId: str):
+    doc_ref = db.collection("userData").document(userId)
+    doc = doc_ref.get()
+    try:
+        tokens = doc.to_dict()["tokens"]
+    except KeyError:
+        tokens = 800
+        doc_ref.set({"tokens": tokens})
+
+    if tokens < 200:
+        return {"response": "TOKENS"}
+    tokens -= 250
     print("Get Summary")
 
     async with httpx.AsyncClient() as client:

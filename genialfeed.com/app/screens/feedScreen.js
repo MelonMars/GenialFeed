@@ -18,7 +18,7 @@ import * as WebBrowser from 'expo-web-browser';
 import RenderHtml from 'react-native-render-html';
 
 export default function FeedPage({ route }) {
-    const { description, title, link, styles } = route.params;
+    const { description, title, link, userId, styles } = route.params;
     const { width } = Dimensions.get('window');
     const [isReaderMode, setIsReaderMode] = useState(false);
     const [readerContent, setReaderContent] = useState(null);
@@ -74,10 +74,12 @@ export default function FeedPage({ route }) {
         setLoading(true);
         setModalVisible(true);
         try {
-            const response = await fetch('https://api.genialfeed.com:8000/getSummary/?link=' + link);
+            const response = await fetch('https://api.genialfeed.com:8000/getSummary/?link=' + link + "&userId=" + userId);
             const summData = await response.json();
             if (summData.result === "ERROR") {
                 setSummary("Couldn't make summary!");
+            } else if (summData.result === "TOKENS") {
+                setSummary("Not enough tokens to make summary!");
             } else {
                 console.log(summData);
                 setSummary(summData.result);
