@@ -213,11 +213,12 @@ async def get_summary(link: str, userId: str):
         tokens = doc.to_dict()["tokens"]
     except KeyError:
         tokens = 800
-        doc_ref.set({"tokens": tokens})
+        doc_ref.set({"tokens": tokens}, merge=True)
 
     if tokens < 200:
         return {"response": "TOKENS"}
     tokens -= 250
+    doc_ref.set({"tokens": tokens}, merge=True)
     print("Get Summary")
 
     async with httpx.AsyncClient() as client:
