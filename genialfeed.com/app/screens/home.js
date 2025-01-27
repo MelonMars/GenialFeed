@@ -41,6 +41,83 @@ export default function HomeScreen() {
     const [draggables, setDraggables] = useState([]);
     const [receptacles, setReceptacles] = useState([]);
     const [expandedFolders, setExpandedFolders] = useState({});
+    const [actionModalVisible, setActionModalVisible] = useState(false);
+    const [modalInputValue, setModalInputValue] = useState(null);
+    const [modalPrompt, setModalPrompt] = useState(null);
+    const [currentAction, setCurrentAction] = useState(null);
+    const [feedBeingAdded, setFeedBeingAdded] = useState(null);
+    const [feedBeingAddedURL, setFeedBeingAddedURL] = useState(null);
+
+    const handleSubmitAction = async () => {
+        setLoading(true);
+        try {
+            if (currentAction === 'addFeed') {
+                // This whole thing is fugazi 
+                if (!feedBeingAdded) {
+                    console.log("Got modalInputValue:", modalInputValue);
+                    let feedTitle = modalInputValue.replace(/[^a-zA-Z0-9 ]/g, '');
+                    console.log("Feed title:", feedTitle);
+                    setFeedBeingAdded(feedTitle);
+                    let feedUrl = await showPrompt("Enter feed URL:");
+                } else {
+                const feedTitle = feedBeingAdded;
+                let feedUrl = modalInputValue;
+                console.log("Feed URL:", feedUrl);
+                console.log("Feed title:", feedTitle);
+                feedUrl = feedUrl.replace(" ", "");
+                const requUrl = "https://api.genialfeed.com:8000/checkFeed/?feedUrl=" + feedUrl;
+                console.log("Sending request to:", requUrl);
+                const response = await fetch(requUrl, {
+                    method: 'GET',
+                    headers: {
+                        'accept': 'application/json'
+                    }
+                });
+                const feed = await response.json();
+                console.log("Feed response:", feed);
+                setActionModalVisible(false);
+                if (feed.response === "BOZO") {
+                    console.log("Feed is bozo, trying to make it now");
+                    const makeFeedResponse = await fetch("https://api.genialfeed.com:8000/makeFeed/?feedUrl=" + feedUrl + "&userId=" + userId);
+                    const newFeed = await makeFeedResponse.json();
+                    if (newFeed.response === "BOZO") {
+                        alert("INVALID FEED URL");
+                    } else {
+                        console.log("Feed is not bozo, adding it now");
+                        const validFeedUrl = newFeed.response;
+                        console.log("Valid feed URL:", validFeedUrl);
+                        const updates = {};
+                        updates[`feeds.${feedTitle}`] = [{ feed: validFeedUrl, type: "feed" }];
+                        await updateDoc(doc(db, 'userData', userId), updates);
+                        await fetchFeedsAndFolders();
+                        console.log("Done!")
+                    }
+                } else {
+                    console.log("Feed is not bozo, adding it now");
+                    const validFeedUrl = feed.response;
+                    const dataSnapshot = await getDoc(doc(db, 'userData', userId));
+                    const updates = {};
+                    updates[`feeds.${feedTitle}`] = [{ feed: validFeedUrl, type: "feed" }];
+                    await updateDoc(dataSnapshot.ref, updates);
+                    await fetchFeedsAndFolders();
+                }
+            }
+            } else if (currentAction === 'addFolder') {
+                const folderName = modalInputValue;
+                const updates = {};
+                updates[`feeds.${folderName}`] = { feeds: {} };
+                await updateDoc(doc(db, 'userData', userId), updates);
+                await fetchFeedsAndFolders();
+            }
+        } catch (error) {
+            console.error(error);
+            alert("An error occurred while performing the action.");
+        } finally {
+            setFeedBeingAdded(null);
+            setActionModalVisible(false);
+            setLoading(false);
+        }
+    };
 
     const toggleFolderExpansion = (id) => {
         setExpandedFolders((prev) => ({
@@ -63,11 +140,27 @@ export default function HomeScreen() {
         await signOut(auth);
     };
 
-    const handleAddItem = () => {
-        addButtonRef.current.measure((fx, fy, width, height, px, py) => {
-            setAddItemPosition({ top: py + height, left: px });
+    // const handleAddItem = () => {
+    //     addButtonRef.current.measure((fx, fy, width, height, px, py) => {
+    //         setAddItemPosition({ top: py + height, left: px });
+    //     });
+    //     setAddItemVisible(true);
+    // };
+    const handleAddItem = async () => {
+        setActionModalVisible(true);
+        setModalPrompt('Choose an option:');
+    };
+
+    const showPrompt = (prompt) => {
+        setModalPrompt(prompt);
+        setActionModalVisible(true);
+        return new Promise(resolve => {
+            const submit = () => {
+                resolve(modalInputValue);
+                setActionModalVisible(false);
+            };
+            setModalInputValue('');
         });
-        setAddItemVisible(true);
     };
 
     const handleCloseAddItem = () => {
@@ -388,53 +481,42 @@ export default function HomeScreen() {
             </ScrollView>
 
             <Modal
-                visible={addItemVisible}
-                transparent={true}
-                animationType="fade"
-                onRequestClose={handleCloseAddItem}
-            >
-                <TouchableWithoutFeedback onPress={handleCloseAddItem}>
-                    <View style={styles.modalBackdrop}>
-                        <TouchableWithoutFeedback>
-                            <View style={[styles.modal, addItemPosition]}>
-                                <Text style={styles.normalText}>Choose an option:</Text>
-                                <TouchableOpacity onPress={addFeed}>
-                                    <Text style={styles.normalText}>Add Feed</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={addFolder}>
-                                    <Text style={styles.normalText}>Add Folder</Text>
-                                </TouchableOpacity>
-                            </View>
-                        </TouchableWithoutFeedback>
-                    </View>
-                </TouchableWithoutFeedback>
-            </Modal>
-
-            <Modal
-                visible={inputVisible}
+                visible={actionModalVisible}
                 transparent={true}
                 animationType="slide"
-                onRequestClose={handleCloseInput}
+                onRequestClose={() => setActionModalVisible(false)}
             >
-                <TouchableWithoutFeedback onPress={handleCloseInput}>
+                <TouchableWithoutFeedback onPress={() => setActionModalVisible(false)}>
                     <View style={styles.modalBackground}>
                         <TouchableWithoutFeedback>
                             <View style={styles.modalContent}>
-                                <Text style={styles.normalText}>
-                                    {inputPrompt}
-                                </Text>
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder={inputPrompt}
-                                    value={inputValue}
-                                    onChangeText={setInputValue}
-                                    onSubmitEditing={handleInputSubmit}
-                                    autoCapitalize='none'
-                                />
-                                <Button title="Submit" onPress={() => {
-                                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                                    handleInputSubmit();
-                                }} />
+                                <Text style={styles.normalText}>{modalPrompt}</Text>
+                                {modalPrompt === 'Choose an option:' ? (
+                                    <>
+                                        <Button title="Add Feed" onPress={() => {
+                                            setCurrentAction('addFeed');
+                                            setModalPrompt('Enter feed name:');
+                                        }} />
+                                        <Button title="Add Folder" onPress={() => {
+                                            setCurrentAction('addFolder');
+                                            setModalPrompt('Enter folder name:');
+                                        }} />
+                                    </>
+                                ) : (
+                                    <>
+                                        <TextInput
+                                            style={styles.input}
+                                            placeholder={modalPrompt}
+                                            value={modalInputValue}
+                                            onChangeText={setModalInputValue}
+                                        />
+
+                                        <Button title="Submit" onPress={async () => {
+                                            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                                            handleSubmitAction();
+                                        }} />
+                                    </>
+                                )}
                             </View>
                         </TouchableWithoutFeedback>
                     </View>

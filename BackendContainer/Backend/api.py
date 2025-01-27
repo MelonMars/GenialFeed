@@ -138,7 +138,8 @@ async def read_feed(feed):
     }
 
 openaiModel = "gpt-4o-mini"
-openaiKey = "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"
+secrets = json.load(open(".venv\\secrets.json"))
+openaiKey = secrets["openaiKey"]
 
 @app.get("/makeFeed/")
 async def apiFeed(feedUrl, userId):
