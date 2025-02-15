@@ -4,7 +4,7 @@
     "slug": "app",
     "version": "2.3.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/IMG_6859.png",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash.png",

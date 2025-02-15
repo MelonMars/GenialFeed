@@ -47,6 +47,7 @@ export default function HomeScreen() {
     const [currentAction, setCurrentAction] = useState(null);
     const [feedBeingAdded, setFeedBeingAdded] = useState(null);
     const [feedBeingAddedURL, setFeedBeingAddedURL] = useState(null);
+    const [faviconCache, setFaviconCache] = useState({});
 
     const handleSubmitAction = async () => {
         setLoading(true);
@@ -370,27 +371,41 @@ export default function HomeScreen() {
     };
 
     const FeedItem = ({ item, folder }) => {
-        const [favicon, setFavicon] = useState(null);
+        const [isLoading, setIsLoading] = useState(false);
         const feedPath = folder ? `${folder}.feeds.${item}` : item;
+        const feedUrl = folder ? dataFeeds[folder].feeds[item][0].feed : dataFeeds[item][0].feed;
+        const cacheKey = `favicon_${feedUrl}`;
 
         useEffect(() => {
             const fetchFavicon = async () => {
+                if (isLoading) return;
+                
+                if (faviconCache[cacheKey]) return;
+
                 try {
-                    const feedUrl = folder ? dataFeeds[folder].feeds[item][0].feed : dataFeeds[item][0].feed;
+                    setIsLoading(true);
                     const response = await fetch(`https://api.genialfeed.com:8000/getFavicon/?url=${feedUrl}`);
                     const respJson = await response.json();
-                    if (respJson["favicon_url"] !== null) {
-                        setFavicon(respJson["favicon_url"]);
-                    } else {
-                        setFavicon(null);
-                    }
-                    console.log("Favicon:", favicon);
+                    
+                    setFaviconCache(prevCache => ({
+                        ...prevCache,
+                        [cacheKey]: respJson["favicon_url"]
+                    }));
                 } catch (error) {
-                    setFavicon(null);
+                    setFaviconCache(prevCache => ({
+                        ...prevCache,
+                        [cacheKey]: null
+                    }));
+                    console.error("Error fetching favicon:", error);
+                } finally {
+                    setIsLoading(false);
                 }
             };
-            fetchFavicon();
-        }, [item, folder]);
+
+            if (!faviconCache[cacheKey] && !isLoading) {
+                fetchFavicon();
+            }
+        }, [feedUrl, cacheKey, isLoading]);
 
         return (
             <TouchableOpacity
@@ -399,14 +414,13 @@ export default function HomeScreen() {
                     setFolderModalVisible(true);
                 }}
                 onPress={async () => {
-                    const feedUrl = folder ? dataFeeds[folder].feeds[item][0].feed : dataFeeds[item][0].feed;
                     await fetchFeed(feedUrl);
                 }}
                 style={styles.draggable}
             >
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <Image
-                        source={favicon ? { uri: favicon } : require('../assets/no-favicon.png')}
+                        source={faviconCache[cacheKey] ? { uri: faviconCache[cacheKey] } : require('../assets/no-favicon.png')}
                         style={{ width: 16, height: 16, marginRight: 8 }}
                     />
                     <Text style={{ color: currentTheme.text }}>{item}</Text>
@@ -415,7 +429,8 @@ export default function HomeScreen() {
         );
     };
 
-        const renderFeedItem = ({ item, index }) => {
+
+    const renderFeedItem = ({ item, index }) => {
         return (<FeedItem item={item} />);
     };
 

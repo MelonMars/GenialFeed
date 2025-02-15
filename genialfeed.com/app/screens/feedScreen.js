@@ -7,10 +7,8 @@ import {
     Alert,
     Dimensions,
     ScrollView,
-    Button,
     ActivityIndicator,
     Modal,
-    StyleSheet,
     Image,
 } from 'react-native';
 import { InAppBrowser } from 'react-native-inappbrowser-reborn';
@@ -35,8 +33,8 @@ export default function FeedPage({ route }) {
             if (await InAppBrowser.isAvailable()) {
                 const result = await InAppBrowser.open(link, {
                     dismissButtonStyle: 'cancel',
-                    preferredBarTintColor: '#453AA4',
-                    preferredControlTintColor: 'white',
+                    preferredBarTintColor: styles.primary,
+                    preferredControlTintColor: styles.text,
                     readerMode: false,
                     animated: true,
                     modalPresentationStyle: 'fullScreen',
@@ -44,22 +42,13 @@ export default function FeedPage({ route }) {
                     modalEnabled: true,
                     enableBarCollapsing: false,
                     showTitle: true,
-                    toolbarColor: '#6200EE',
-                    secondaryToolbarColor: 'black',
-                    navigationBarColor: 'black',
-                    navigationBarDividerColor: 'white',
+                    toolbarColor: styles.primary,
+                    secondaryToolbarColor: styles.primDark,
+                    navigationBarColor: styles.primary,
+                    navigationBarDividerColor: styles.border,
                     enableUrlBarHiding: true,
                     enableDefaultShare: true,
                     forceCloseOnRedirection: false,
-                    animations: {
-                        startEnter: 'slide_in_right',
-                        startExit: 'slide_out_left',
-                        endEnter: 'slide_in_left',
-                        endExit: 'slide_out_right'
-                    },
-                    headers: {
-                        'my-custom-header': 'my custom header value'
-                    }
                 });
                 await sleep(800);
                 Alert.alert(JSON.stringify(result));
@@ -81,7 +70,6 @@ export default function FeedPage({ route }) {
             } else if (summData.result === "TOKENS") {
                 setSummary("Not enough tokens to make summary!");
             } else {
-                console.log(summData);
                 setSummary(summData.result);
             }
         } catch (error) {
@@ -108,11 +96,15 @@ export default function FeedPage({ route }) {
     };
 
     return (
-        <View style={[styles.pageContainer, { flex: 1 }]} >
-            <TouchableOpacity onPress={openLink}>
-                <Text style={styles.feedTitle}>{title}</Text>
-            </TouchableOpacity>
-            <ScrollView>
+        <View style={[styles.pageContainer, { flex: 1 }]}>
+            <View style={styles.articleHeader}>
+                <TouchableOpacity onPress={openLink} style={styles.titleContainer}>
+                    <Text style={styles.articleTitle}>{title}</Text>
+                    <Text style={styles.linkText}>{link}</Text>
+                </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.contentContainer}>
                 {isReaderMode ? (
                     readerContent ? (
                         <RenderHtml
@@ -122,77 +114,84 @@ export default function FeedPage({ route }) {
                                 img: ({ TDefaultRenderer, ...props }) => (
                                     <Image
                                         source={{ uri: props.src }}
-                                        style={{ width: props.width || 200, height: props.height || 200 }}
+                                        style={[styles.articleImage, { width: width - 32, height: width * 0.6 }]}
                                     />
                                 ),
                             }}
-                            baseStyle={styles.normalText}
+                            baseStyle={styles.articleText}
                         />
                     ) : (
-                        <ActivityIndicator size="large" color="#0000ff" />
+                        <ActivityIndicator size="large" color={styles.accent} />
                     )
                 ) : (
-    description.startsWith('<') ? (
-        <RenderHtml
-            contentWidth={width}
-            source={{ html: description }}
-            style={styles.normalText}
-            renderers={{
-                img: ({ TDefaultRenderer, ...props }) => (
-                    <Image
-                        source={{ uri: props.src }}
-                        style={{ width: props.width || 200, height: props.height || 200 }}
-                    />
-                ),
-            }}
-            baseStyle={styles.normalText}
-            />
-        ) : (
-            <Text style={styles.normalText}>{description.replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec))}</Text>
-        )
-    )}
+                    description.startsWith('<') ? (
+                        <RenderHtml
+                            contentWidth={width}
+                            source={{ html: description }}
+                            renderers={{
+                                img: ({ TDefaultRenderer, ...props }) => (
+                                    <Image
+                                        source={{ uri: props.src }}
+                                        style={[styles.articleImage, { width: width - 32, height: width * 0.6 }]}
+                                    />
+                                ),
+                            }}
+                            baseStyle={styles.articleText}
+                        />
+                    ) : (
+                        <Text style={styles.articleText}>
+                            {description.replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec))}
+                        </Text>
+                    )
+                )}
             </ScrollView>
-            <View style={{ position: 'absolute', bottom: 0, width: '100%', flexDirection: 'row' }}>
-                <TouchableOpacity onPress={toggleReaderMode} style={{ flex: 1, padding: 10, backgroundColor: styles.primLight, borderRadius: 4, borderWidth: 2, alignItems: 'center' }}>
-                    <Image source={ require('../assets/readermode.png') } style={{ width: 24, height: 24 }} />
+
+            <View style={styles.bottomToolbar}>
+                <TouchableOpacity 
+                    onPress={toggleReaderMode} 
+                    style={[styles.toolbarButton, isReaderMode && styles.toolbarButtonActive]}
+                >
+                    <Image 
+                        source={require('../assets/readermode.png')} 
+                        style={[styles.toolbarIcon, isReaderMode && styles.toolbarIconActive]} 
+                    />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={makeSummary} style={{ flex: 1, padding: 10, backgroundColor: styles.primLight, borderRadius: 4, borderWidth: 2, alignItems: 'center' }}>
-                    <Image source={ require('../assets/summary.png') } style={{ width: 24, height: 24 }} />
+                <TouchableOpacity 
+                    onPress={makeSummary} 
+                    style={styles.toolbarButton}
+                >
+                    <Image 
+                        source={require('../assets/summary.png')} 
+                        style={styles.toolbarIcon} 
+                    />
                 </TouchableOpacity>
             </View>
+
             <Modal
                 visible={modalVisible}
                 transparent={true}
-                animationType="fade"
+                animationType="slide"
                 onRequestClose={() => setModalVisible(false)}
             >
                 <View style={styles.modalBackground}>
                     <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Summary</Text>
+                            <TouchableOpacity 
+                                onPress={() => setModalVisible(false)}
+                                style={styles.modalCloseButton}
+                            >
+                                <Text style={styles.modalCloseText}>×</Text>
+                            </TouchableOpacity>
+                        </View>
                         {loading ? (
-                            <ActivityIndicator size="large" color="#0000ff" />
+                            <ActivityIndicator size="large" color={styles.accent} />
                         ) : (
-                            <Text style={styles.normalText}>{summary}</Text>
+                            <Text style={styles.modalText}>{summary}</Text>
                         )}
-                        <Button title="Close" onPress={() => setModalVisible(false)} />
                     </View>
                 </View>
             </Modal>
         </View>
     );
 }
-
-const styles = StyleSheet.create({
-    modalBackground: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    },
-    modalContent: {
-        width: 300,
-        padding: 20,
-        backgroundColor: 'white',
-        borderRadius: 5,
-        alignItems: 'center',
-    },
-});

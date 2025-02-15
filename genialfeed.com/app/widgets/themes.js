@@ -1,24 +1,30 @@
-const dark = {
-    primary: '#424242',
-    primLight: '#6d6d6d',
-    primDark: '#1b1b1b',
-    accent: '#ff0000',
-    background: '#303030',
-    text: '#ffffff',
-    modalOverlay: 'rgba(255,255,255,0.5)',
-};
-
-const light = {
-    primary: '#ffffff',
-    primLight: '#f5f5f5',
-    primDark: '#cccccc',
-    accent: '#ff0000',
-    background: '#f0f0f0',
-    text: '#000000',
-    modalOverlay: 'rgba(156,156,156,0.5)',
-};
-
 export const themes = {
-    dark,
-    light,
+    light: {
+        primary: '#ffffff',
+        primLight: '#fafafa',
+        primDark: '#dbdbdb',
+        background: '#ffffff',
+        text: '#262626',
+        secondaryText: '#8e8e8e',
+        border: '#dbdbdb',
+        link: '#0095f6',
+        modalOverlay: 'rgba(0, 0, 0, 0.6)',
+        accent: '#0095f6',
+        error: '#ed4956',
+        success: '#2ecc71'
+    },
+    dark: {
+        primary: '#000000',
+        primLight: '#262626',
+        primDark: '#363636',
+        background: '#121212',
+        text: '#ffffff',
+        secondaryText: '#8e8e8e',
+        border: '#363636',
+        link: '#0095f6',
+        modalOverlay: 'rgba(0, 0, 0, 0.85)',
+        accent: '#0095f6',
+        error: '#ed4956',
+        success: '#2ecc71'
+    }
 };
