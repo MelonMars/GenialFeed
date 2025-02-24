@@ -2,6 +2,7 @@ import { StyleSheet } from 'react-native';
 
 export const createStyles = (theme) => {
     if (!theme || typeof theme !== 'object' || theme === null) {
+        console.log("Theme: ", theme);
         throw new TypeError('Invalid theme object');
     }
 
@@ -275,6 +276,58 @@ export const createStyles = (theme) => {
             fontSize: 16,
             lineHeight: 24,
             color: theme.text,
+        },
+        themeContainer: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: 20,
+            paddingVertical: 10,
+            alignContent: 'center',
+            textAlign: 'center',
+        },
+        logoutButton: {
+            backgroundColor: "#f60021",
+            padding: 12,
+            borderRadius: 6,
+            alignItems: 'center',
+            width: '90%',
+        },
+        logoutText: {
+            color: '#ffffff',
+            fontSize: 20,
+            fontWeight: 'bold',
+        },
+        link: {
+            color: theme.link,
+        },
+        addButtonContainer: {
+            position: 'absolute',
+            bottom: 24,
+            right: 24,
+            zIndex: 1000,
+        },
+        addButton: {
+            width: 56,
+            height: 56,
+            borderRadius: 28,
+            backgroundColor: theme.accent,
+            justifyContent: 'center',
+            alignItems: 'center',
+            shadowColor: '#000',
+            shadowOffset: {
+                width: 0,
+                height: 2,
+            },
+            shadowOpacity: 0.25,
+            shadowRadius: 3.84,
+            elevation: 5,
+        },
+        addButtonText: {
+            color: '#ffffff',
+            fontSize: 32,
+            fontWeight: '300',
+            marginTop: -2,
         },
     });
 };

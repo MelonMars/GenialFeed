@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import {
     View,
     Text,
@@ -14,15 +14,23 @@ import {
 import { InAppBrowser } from 'react-native-inappbrowser-reborn';
 import * as WebBrowser from 'expo-web-browser';
 import RenderHtml from 'react-native-render-html';
+import { createStyles } from '../widgets/styles';
+import { ThemeContext } from '../context/ThemeContext';
 
 export default function FeedPage({ route }) {
-    const { description, title, link, userId, styles } = route.params;
+    const { description, title, link, userId } = route.params;
     const { width } = Dimensions.get('window');
     const [isReaderMode, setIsReaderMode] = useState(false);
     const [readerContent, setReaderContent] = useState(null);
     const [summary, setSummary] = useState(null);
     const [loading, setLoading] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
+    const { currentTheme } = useContext(ThemeContext);
+    const [styles, setStyles] = useState(createStyles(currentTheme));
+
+    useEffect(() => {
+        setStyles(createStyles(currentTheme));
+    }, [currentTheme]);
 
     const sleep = async (timeout) => {
         return new Promise(resolve => setTimeout(resolve, timeout));
@@ -119,6 +127,9 @@ export default function FeedPage({ route }) {
                                 ),
                             }}
                             baseStyle={styles.articleText}
+                            tagsStyles={{
+                                a: {color: "#e3e3e3"},
+                            }}
                         />
                     ) : (
                         <ActivityIndicator size="large" color={styles.accent} />
@@ -140,7 +151,7 @@ export default function FeedPage({ route }) {
                         />
                     ) : (
                         <Text style={styles.articleText}>
-                            {description.replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec))}
+                            {description.replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(dec))}
                         </Text>
                     )
                 )}

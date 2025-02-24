@@ -11,7 +11,8 @@ export const themes = {
         modalOverlay: 'rgba(0, 0, 0, 0.6)',
         accent: '#0095f6',
         error: '#ed4956',
-        success: '#2ecc71'
+        success: '#2ecc71',
+        link: '#3d3c3c',
     },
     dark: {
         primary: '#000000',
@@ -25,6 +26,7 @@ export const themes = {
         modalOverlay: 'rgba(0, 0, 0, 0.85)',
         accent: '#0095f6',
         error: '#ed4956',
-        success: '#2ecc71'
+        success: '#2ecc71',
+        link: '#e3e3e3',
     }
 };

@@ -19,6 +19,8 @@ import { useNavigation } from '@react-navigation/native';
 import { themes } from '../widgets/themes';
 import { createStyles } from '../widgets/styles';
 import * as Haptics from 'expo-haptics';
+import { ThemeContext } from '../context/ThemeContext';
+import { useContext } from 'react';
 
 export default function HomeScreen() {
     const [userId, setUserId] = useState(null);
@@ -34,7 +36,7 @@ export default function HomeScreen() {
     const [folders, setFolders] = useState([]);
     const [dataFeeds, setDataFeeds] = useState([]);
     const navigation = useNavigation();
-    const [currentTheme, setCurrentTheme] = useState(themes["dark"]);
+    const { currentTheme } = useContext(ThemeContext);
     const [styles, setStyles] = useState(createStyles(currentTheme));
     const [selectedFeed, setSelectedFeed] = useState(null);
     const [folderModalVisible, setFolderModalVisible] = useState(false);
@@ -48,6 +50,8 @@ export default function HomeScreen() {
     const [feedBeingAdded, setFeedBeingAdded] = useState(null);
     const [feedBeingAddedURL, setFeedBeingAddedURL] = useState(null);
     const [faviconCache, setFaviconCache] = useState({});
+    const [isDragging, setIsDragging] = useState(false);
+  
 
     const handleSubmitAction = async () => {
         setLoading(true);
@@ -137,10 +141,6 @@ export default function HomeScreen() {
         fetchFeedsAndFolders();
     }, [userId]);
 
-    const handleLogout = async () => {
-        await signOut(auth);
-    };
-
     // const handleAddItem = () => {
     //     addButtonRef.current.measure((fx, fy, width, height, px, py) => {
     //         setAddItemPosition({ top: py + height, left: px });
@@ -196,21 +196,21 @@ export default function HomeScreen() {
         console.log(`Folder: ${folder}`, folderFeeds, dataFeeds[folder].feeds);
         return (
             <View style={styles.folderContainer}>
-            <TouchableOpacity
-                style={styles.folderHeader}
-                onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
-                toggleFolderExpansion(folder);
-                }}
-            >
-                <Text style={{color: currentTheme.text}}>{folder}</Text>
-                <Text style={{color: currentTheme.text}}>{expandedFolders[folder] ? '-' : '+'}</Text>
-            </TouchableOpacity>
-            {expandedFolders[folder] && (
-                <View style={styles.folder}>
-                {renderDraggables(folderFeeds, folder)}
-                </View>
-            )}
+                <TouchableOpacity
+                    style={[styles.folderHeader, { flexDirection: 'row', justifyContent: 'space-between', width: '100%' }]}
+                    onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+                        toggleFolderExpansion(folder);
+                    }}
+                >
+                    <Text style={{ color: currentTheme.text }}>{folder}</Text>
+                    <Text style={{ color: currentTheme.text }}>{expandedFolders[folder] ? '-' : '+'}</Text>
+                </TouchableOpacity>
+                {expandedFolders[folder] && (
+                    <View style={styles.folder}>
+                        {renderDraggables(folderFeeds, folder)}
+                    </View>
+                )}
             </View>
         );
     };
@@ -445,34 +445,22 @@ export default function HomeScreen() {
         setReceptacles(folders.map((folder, index) => ({ id: folder, items: [] })));
     }, [feeds, folders]);
 
-    const toggleDark = () => {
-        const newTheme = currentTheme === themes["dark"] ? themes["light"] : themes["dark"];
-        setCurrentTheme(newTheme);
-        setStyles(createStyles(newTheme));
-    }
-
     useEffect(() => {
         setStyles(createStyles(currentTheme));
     }, [currentTheme]);
 
     return (
         <View style={[styles.pageContainer, { flex: 1 }]}>
-            <View style={{ alignSelf: 'flex-start' }}>
-                <TouchableOpacity onPress={toggleDark} style={styles.themeButton}>
-                    <Image
-                        source={require('../assets/light-mode.png')}
-                        style={[styles.icon, { tintColor: currentTheme === themes["dark"] ? '#FFFFFF' : '#000000' }]}
-                    />
-                </TouchableOpacity>
-            </View>
             <ScrollView contentContainerStyle={styles.container}>
-                <Text style={{color: currentTheme.text}}>Welcome to GenialFeed!</Text>
-                <TouchableOpacity onPress={handleLogout}>
-                    <Text style={{color: currentTheme.text}}>Logout</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={handleAddItem} ref={addButtonRef}>
-                    <Text style={{color: currentTheme.text}}>+</Text>
-                </TouchableOpacity>
+            <View style={styles.addButtonContainer}>
+            <TouchableOpacity 
+                style={styles.addButton}
+                onPress={handleAddItem}
+                ref={addButtonRef}
+            >
+                <Text style={styles.addButtonText}>+</Text>
+            </TouchableOpacity>
+        </View>
 
                 <View style={styles.draggablesContainer}>
                     {renderDraggables(feeds)}
@@ -504,7 +492,7 @@ export default function HomeScreen() {
                 <TouchableWithoutFeedback onPress={() => setActionModalVisible(false)}>
                     <View style={styles.modalBackground}>
                         <TouchableWithoutFeedback>
-                            <View style={styles.modalContent}>
+                            <View style={[styles.modalContent, { marginBottom: 40 }]}>
                                 <Text style={styles.normalText}>{modalPrompt}</Text>
                                 {modalPrompt === 'Choose an option:' ? (
                                     <>
@@ -547,7 +535,7 @@ export default function HomeScreen() {
         <TouchableWithoutFeedback onPress={() => setFolderModalVisible(false)}>
             <View style={styles.modalBackground}>
                 <TouchableWithoutFeedback>
-                    <View style={styles.modalContent}>
+                    <View style={[styles.modalContent, { marginBottom: 40 }]}>
                         <Text style={styles.normalText}>Move {selectedFeed} to:</Text>
                         {folders.concat(['delete', 'main']).map((folder) => (
                             <TouchableOpacity
