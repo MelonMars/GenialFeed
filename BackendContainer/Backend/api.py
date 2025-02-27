@@ -14,6 +14,9 @@ import httpx
 from firebase_admin import firestore
 import firebase_admin
 from firebase_admin import credentials
+from bs4 import BeautifulSoup
+import re
+from urllib.parse import urljoin
 
 cred = credentials.Certificate("BackendContainer/Backend/linkaggregator-bb44b-firebase-adminsdk-4zwbg-9ce8bd5185.json")
 app = firebase_admin.initialize_app(cred)
@@ -262,10 +265,91 @@ async def get_summary(link: str, userId: str):
     return {"result": summary}
 
 
+def create_reader_view(html_content, base_url=None):
+    soup = BeautifulSoup(html_content, 'html.parser')
+    
+    for iframe in soup.find_all('iframe'):
+        height = iframe.get('height') or iframe.get('style', {}).get('height', '')
+        if height and int(height.replace('px', '').strip()) > 0 if height.replace('px', '').strip().isdigit() else False:
+            continue
+        
+        wrapper = soup.new_tag('div')
+        wrapper['class'] = 'iframeWrap'
+        
+        iframe.wrap(wrapper)
+    
+    for table in soup.select('div.articleBody table'):
+        wrapper = soup.new_tag('div')
+        wrapper['class'] = 'nnw-overflow'
+        table.wrap(wrapper)
+    
+    for video in soup.find_all('video'):
+        video['playsinline'] = True
+        if 'nnwAnimatedGIF' not in video.get('class', []):
+            video['controls'] = True
+            if 'autoplay' in video.attrs:
+                del video['autoplay']
+    
+    for element in soup.select('style, link[rel=stylesheet]'):
+        element.decompose()
+    
+    for element in soup.select('[style]'):
+        if 'style' in element.attrs:
+            style = element['style']
+            for prop in ['color', 'background', 'font', 'max-width', 'max-height', 'position']:
+                style = re.sub(f'{prop}[^;]*;', '', style)
+                if prop == 'background':
+                    style = re.sub(f'background-[^;]*;', '', style)
+                elif prop == 'font':
+                    style = re.sub(f'font-[^;]*;', '', style)
+            
+            element['style'] = style
+    
+    for iframe in soup.find_all('iframe'):
+        # Check if iframe is a direct child of body (simplified)
+        if iframe.parent.name == 'body':
+            height_attr = iframe.get('style', {}).get('height', '')
+            if re.search(r'%|vw|vh$', height_attr, re.IGNORECASE):
+                if 'class' in iframe.attrs:
+                    iframe['class'].append('nnw-constrained')
+                else:
+                    iframe['class'] = ['nnw-constrained']
+    
+    for img in soup.find_all('img'):
+        if img.has_attr('data-canonical-src'):
+            img['src'] = img['data-canonical-src']
+        elif base_url and not re.match(r'^[a-z]+://', img.get('src', '')):
+            img['src'] = urljoin(base_url, img['src'])
+    
+    for pre in soup.select('div.articleBody td > pre'):
+        for span in pre.find_all('span'):
+            span.unwrap()
+    
+    for elem in soup.select('sup > a[href*="#fn"], sup > div > a[href*="#fn"]'):
+        href = elem.get('href', '')
+        if href.startswith('#fn') or (base_url and href.startswith(f"{base_url}#fn")):
+            if 'class' in elem.attrs:
+                elem['class'].append('footnote')
+            else:
+                elem['class'] = ['footnote']
+    
+    for img in soup.select('img.wp-smiley[alt]'):
+        img.replace_with(img['alt'])
+    
+    return str(soup)
+
 
 @app.get("/cleanPage/")
 async def cleanPage(link):
-    return {"result": Document(requests.get(link).content).summary()}
+    try:
+        response = requests.get(link)
+        if response.status_code == 200:
+            cleaned_html = create_reader_view(response.text, link)
+            return {"result": cleaned_html}
+        else:
+            return "Error fetching page."
+    except Exception as e:
+        return f"Error: {e}"
 
 @app.get("/getFavicon/")
 async def getFavicon(url):
