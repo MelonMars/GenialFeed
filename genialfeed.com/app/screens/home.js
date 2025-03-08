@@ -11,6 +11,9 @@ import {
     TouchableWithoutFeedback,
     View,
     Image,
+    KeyboardAvoidingView, 
+    Platform, 
+    Keyboard
 } from 'react-native';
 import { auth, db } from '../firebase';
 import { signOut } from 'firebase/auth';
@@ -121,6 +124,7 @@ export default function HomeScreen() {
             setFeedBeingAdded(null);
             setActionModalVisible(false);
             setLoading(false);
+            setModalInputValue('');
         }
     };
 
@@ -489,39 +493,53 @@ export default function HomeScreen() {
                 animationType="slide"
                 onRequestClose={() => setActionModalVisible(false)}
             >
-                <TouchableWithoutFeedback onPress={() => setActionModalVisible(false)}>
+                <TouchableWithoutFeedback 
+                    onPress={() => {
+                        Keyboard.dismiss();
+                        setActionModalVisible(false);
+                    }}
+                >
                     <View style={styles.modalBackground}>
-                        <TouchableWithoutFeedback>
-                            <View style={[styles.modalContent, { marginBottom: 40 }]}>
-                                <Text style={styles.normalText}>{modalPrompt}</Text>
-                                {modalPrompt === 'Choose an option:' ? (
-                                    <>
-                                        <Button title="Add Feed" onPress={() => {
-                                            setCurrentAction('addFeed');
-                                            setModalPrompt('Enter feed name:');
-                                        }} />
-                                        <Button title="Add Folder" onPress={() => {
-                                            setCurrentAction('addFolder');
-                                            setModalPrompt('Enter folder name:');
-                                        }} />
-                                    </>
-                                ) : (
-                                    <>
-                                        <TextInput
-                                            style={styles.input}
-                                            placeholder={modalPrompt}
-                                            value={modalInputValue}
-                                            onChangeText={setModalInputValue}
-                                        />
-
-                                        <Button title="Submit" onPress={async () => {
-                                            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                                            handleSubmitAction();
-                                        }} />
-                                    </>
-                                )}
-                            </View>
-                        </TouchableWithoutFeedback>
+                        <KeyboardAvoidingView 
+                            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                            style={{ flex: 1, justifyContent: 'center' }}
+                        >
+                            <TouchableWithoutFeedback onPress={() => {}}>
+                                <View style={[styles.modalContent, { marginBottom: 40 }]}>
+                                    <Text style={styles.normalText}>{modalPrompt}</Text>
+                                    {modalPrompt === 'Choose an option:' ? (
+                                        <>
+                                            <Button title="Add Feed" onPress={() => {
+                                                setCurrentAction('addFeed');
+                                                setModalPrompt('Enter feed name:');
+                                            }} />
+                                            <Button title="Add Folder" onPress={() => {
+                                                setCurrentAction('addFolder');
+                                                setModalPrompt('Enter folder name:');
+                                            }} />
+                                        </>
+                                    ) : (
+                                        <>
+                                            <TextInput
+                                                style={styles.input}
+                                                placeholder={modalPrompt}
+                                                value={modalInputValue}
+                                                onChangeText={setModalInputValue}
+                                                returnKeyType="done" 
+                                                onSubmitEditing={async () => { 
+                                                    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                                                    handleSubmitAction();
+                                                }}
+                                            />
+                                            <Button title="Submit" onPress={async () => {
+                                                await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                                                handleSubmitAction();
+                                            }} />
+                                        </>
+                                    )}
+                                </View>
+                            </TouchableWithoutFeedback>
+                        </KeyboardAvoidingView>
                     </View>
                 </TouchableWithoutFeedback>
             </Modal>

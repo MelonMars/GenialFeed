@@ -59,7 +59,6 @@ export default function FeedPage({ route }) {
                     forceCloseOnRedirection: false,
                 });
                 await sleep(800);
-                Alert.alert(JSON.stringify(result));
             } else Linking.openURL(link);
         } catch (error) {
             console.error(error);
