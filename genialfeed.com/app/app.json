@@ -2,10 +2,10 @@
   "expo": {
     "name": "GenialFeed",
     "slug": "app",
-    "version": "2.3.0",
+    "version": "2.3.7",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "icon": "./assets/app-icon.PNG",
+    "icon": "./assets/app-icon.png",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",

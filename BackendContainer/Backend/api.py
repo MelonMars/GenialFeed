@@ -17,6 +17,8 @@ from firebase_admin import credentials
 from bs4 import BeautifulSoup
 import re
 from urllib.parse import urljoin
+from google import genai  # Import Google's Generative AI library
+
 
 cred = credentials.Certificate("BackendContainer/Backend/linkaggregator-bb44b-firebase-adminsdk-4zwbg-9ce8bd5185.json")
 app = firebase_admin.initialize_app(cred)
@@ -30,6 +32,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Load secrets and configure Gemini API
+secrets = json.load(open(".venv\\secrets.json"))
+gemini_api_key = secrets.get("geminiKey")  # Make sure to add this to your secrets.json file
+genai.configure(api_key=gemini_api_key)
+
+# Set default model
+gemini_model = "gemini-pro"  # This replaces the openaiModel variable
 
 
 def check_common_child_paths(feed_url):
@@ -140,9 +150,6 @@ async def read_feed(feed):
         }
     }
 
-openaiModel = "gpt-4o-mini"
-secrets = json.load(open(".venv\\secrets.json"))
-openaiKey = secrets["openaiKey"]
 
 @app.get("/makeFeed/")
 async def apiFeed(feedUrl, userId):
@@ -164,48 +171,25 @@ async def apiFeed(feedUrl, userId):
     else:
         return {"response": "ERROR"}
 
-    url = "https://api.openai.com/v1/chat/completions"
-    headers = {
-        "Content-Type": "application/json",
-        "User-Agent": "GenialFisher",
-	"Authorization": f"Bearer {openaiKey}"
-    }
-    data = {
-        "messages": [
-            {
-                "role": "system",
-                "content": "You are an AI with the job of making an RSS feed from a site. You will be given some HTML code. If the site can have an RSS feed made from it, then reply with the RSS feed made from the data. Otherwise, reply with 'No'. Do not include extraneous tokens. You should return the RSS feed itself, in RSS XML, not code to create the feed -- no php."
-            },
-            {
-                "role": "user",
-                "content": res
-            }
-        ],
-        "temperature": 0.7,
-        "max_tokens": 100,
-        "stream": True,
-	"model": openaiModel,
-    }
-
-    response = requests.post(url, headers=headers, data=json.dumps(data), stream=True)
-
-    feed = ""
-    if response.status_code == 200:
-        response_text = ""
-        for chunk in response.iter_content(chunk_size=None):
-            response_text += chunk.decode('utf-8')
-
-        for line in response_text.split("\n"):
-            try:
-                j = json.loads(line[5:])
-                feed += j["choices"][0]["delta"]["content"]
-            except:
-                pass
-
+    # Configure the Gemini model
+    model = genai.GenerativeModel(gemini_model)
+        
+    system_prompt = "You are an AI with the job of making an RSS feed from a site. You will be given some HTML code. If the site can have an RSS feed made from it, then reply with the RSS feed made from the data. Otherwise, reply with 'No'. Do not include extraneous tokens. You should return the RSS feed itself, in RSS XML, not code to create the feed -- no php."
+    
+    # Create a chat session
+    chat = model.start_chat(history=[])
+    
+    # Send the prompts and get the response
+    response = chat.send_message(f"{system_prompt}\n\n{res[:65000]}")  # Truncating input to handle Gemini's token limits
+    
+    feed = response.text
+    
     feed2 = feedparser.parse(feed)
     if feed2.bozo:
         return {"response": "BOZO"}
     else:
+        # Update tokens in the database
+        doc_ref.set({"tokens": tokens}, merge=True)
         return {"response": feed}
 
 
@@ -233,34 +217,22 @@ async def get_summary(link: str, userId: str):
     doc = Document(res.text)
     message = doc.summary()
 
-    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {openaiKey}"}
-    data = {
-        "messages": [
-            {
-                "role": "system",
-                "content": (
-                    "You are an AI with a job to do. You will be provided with the HTML code of a webpage, "
-                    "and it is your job to make a brief summary/TL;DR of the webpage. Do not include TL;DR or "
-                    "extraneous tokens. You should return a summary of the webpage. You have 150 tokens, or 3 sentences."
-                )
-            },
-            {
-                "role": "user",
-                "content": message[:4500]
-            }
-        ],
-        "temperature": 0.7,
-        "stream": False,
-        "max_tokens": 1000,
-	"model": openaiModel,
-    }
-
-    url = "https://api.openai.com/v1/chat/completions"
-    response = requests.post(url, headers=headers, json=data, verify=False, stream=False)
+    # Initialize the Gemini model
+    model = genai.GenerativeModel(gemini_model)
+    
+    system_prompt = "You are an AI with a job to do. You will be provided with the HTML code of a webpage, and it is your job to make a brief summary/TL;DR of the webpage. Do not include TL;DR or extraneous tokens. You should return a summary of the webpage. You have 150 tokens, or 3 sentences."
+    
+    # Create the prompt
+    prompt = f"{system_prompt}\n\n{message}"
+    
+    # Generate the summary
     try:
-        summary = response.json()['choices'][0]['message']['content']
-    except:
-        print("ERROR Generating Summary!! OpenAI output is: " + response.text)
+        response = model.generate_content(prompt)
+        summary = response.text
+    except Exception as e:
+        print(f"ERROR Generating Summary!! Gemini output error: {str(e)}")
+        summary = "Failed to generate summary."
+    
     print(summary)
     return {"result": summary}
 

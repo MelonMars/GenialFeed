@@ -4,8 +4,8 @@
   "main": "expo/AppEntry.js",
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web",
     "predeploy": "expo export -p web",
     "deploy-hosting": "npm run predeploy && firebase deploy --only hosting"
@@ -25,6 +25,7 @@
     "expo-build-properties": "^0.13.2",
     "expo-dev-client": "~5.0.9",
     "expo-haptics": "~14.0.1",
+    "expo-sharing": "~13.0.1",
     "expo-status-bar": "~2.0.1",
     "expo-web-browser": "~14.0.2",
     "firebase": "^10.14.1",

@@ -16,9 +16,11 @@ import * as WebBrowser from 'expo-web-browser';
 import RenderHtml from 'react-native-render-html';
 import { createStyles } from '../widgets/styles';
 import { ThemeContext } from '../context/ThemeContext';
+import { Share } from 'react-native';
+import {markEntryRead, markEntryFavorited, isPostFavorited, getStoredFeeds, isPostRead} from '../context/feeds';
 
 export default function FeedPage({ route }) {
-    const { description, title, link, userId } = route.params;
+    const { description, title, link, userId, feedName } = route.params;
     const { width } = Dimensions.get('window');
     const [isReaderMode, setIsReaderMode] = useState(false);
     const [readerContent, setReaderContent] = useState(null);
@@ -27,11 +29,17 @@ export default function FeedPage({ route }) {
     const [modalVisible, setModalVisible] = useState(false);
     const { currentTheme } = useContext(ThemeContext);
     const [styles, setStyles] = useState(createStyles(currentTheme));
+    const [isFavorited, setIsFavorited] = useState(false);
+    const [isRead, setIsRead] = useState(false);
 
     useEffect(() => {
         setStyles(createStyles(currentTheme));
     }, [currentTheme]);
 
+    useEffect(() => {
+        markEntryRead(link, true);
+    }, [userId, link]);
+    
     const sleep = async (timeout) => {
         return new Promise(resolve => setTimeout(resolve, timeout));
     };
@@ -100,6 +108,39 @@ export default function FeedPage({ route }) {
                 setLoading(false);
             }
         }
+    };
+
+    const sharePost = async () => {
+        const message = "Hey! Check out this cool article: " + title + " - " + link;
+        try {
+            await Share.share({
+                message: message
+            });
+        } catch (error) {
+            console.error('Error sharing:', error);
+        }
+        }
+
+    useEffect(() => {
+        const fetchStatus = async () => {
+            const favorited = await isPostFavorited(feedName, link);
+
+            const read = await isPostRead(feedName, link);
+            setIsFavorited(favorited);
+            setIsRead(read);
+        };
+        fetchStatus();
+    }, [feedName, link]);
+
+        
+    const toggleFavorite = async () => {
+        await markEntryFavorited(link, !isFavorited);
+        setIsFavorited(!isFavorited);
+    };
+
+    const toggleRead = async () => {
+        await markEntryRead(feedName, link, !isRead);
+        setIsRead(!isRead);
     };
 
     return (
@@ -174,6 +215,23 @@ export default function FeedPage({ route }) {
                         source={require('../assets/summary.png')} 
                         style={styles.toolbarIcon} 
                     />
+                </TouchableOpacity>
+                <TouchableOpacity
+                    onPress={sharePost}
+                    style={styles.toolbarButton}
+                >
+                    <Image
+                        source={require('../assets/share.png')} 
+                        style={styles.toolbarIcon}/>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={toggleFavorite} style={styles.toolbarButton}>
+                    <Image 
+                        source={isFavorited ? require('../assets/favorited.png') : require('../assets/favorite.png')} 
+                        style={[styles.toolbarIcon, isFavorited && styles.toolbarIconActive]}
+                    />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={toggleRead} style={styles.toolbarButton}>
+                    <Text style={[styles.iconText, { color: isRead ? "blue" : "gray" }]}>●</Text>
                 </TouchableOpacity>
             </View>
 

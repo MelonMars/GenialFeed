@@ -66,7 +66,7 @@ export const createStyles = (theme) => {
         },
         modalBackground: {
             flex: 1,
-            justifyContent: 'flex-end',  // Instagram-style bottom sheet
+            justifyContent: 'flex-end',
             backgroundColor: theme.modalOverlay,
         },
         modalContent: {
@@ -97,6 +97,8 @@ export const createStyles = (theme) => {
         buttonText: {
             color: '#ffffff',
             fontWeight: '600',
+            fontSize: 16,
+            textAlign: 'center',
         },
         normalText: {
             color: theme.text,
@@ -328,6 +330,37 @@ export const createStyles = (theme) => {
             fontSize: 32,
             fontWeight: '300',
             marginTop: -2,
+        },
+        addFeedButton: {
+            backgroundColor: theme.accent,
+            paddingVertical: 12,
+            paddingHorizontal: 24,
+            borderRadius: 6,
+            alignItems: 'center',
+        },
+        toggleContainer: {
+            padding: 15,
+            borderTopWidth: 1,
+            borderTopColor: theme.border,
+            flexDirection: 'row',
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: theme.primary,
+        },
+        modalSelect: {
+            backgroundColor: theme.accent,
+            padding: 12,
+            borderRadius: 8,
+            borderWidth: 1,
+            borderColor: theme.border,
+            textAlign: 'center',
+            marginVertical: 8,
+        },
+        modalPrompt: {
+            fontSize: 16,
+            color: theme.text,
+            marginBottom: 8,
+            textAlign: 'center',
         },
     });
 };
